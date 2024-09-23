@@ -53,10 +53,9 @@ class AlbumTests {
 
 	@Test
 	void testUpdatePhoto() {
-		System.out.println("Before update: " + photos[2]);
 		album.updatePhoto(3, 303, "evening_dew.jpg");
 		assertEquals("evening_dew.jpg", photos[2].getUrl());
-		System.out.println("After update: " + photos[2]);
+
 
 	}
 

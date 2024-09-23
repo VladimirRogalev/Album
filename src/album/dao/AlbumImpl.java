@@ -1,7 +1,7 @@
 package album.dao;
 
 import java.time.LocalDate;
-import java.util.Iterator;
+import java.time.LocalDateTime;
 import java.util.function.Predicate;
 
 import album.model.Photo;
@@ -68,8 +68,16 @@ public class AlbumImpl implements Album {
 
 	@Override
 	public Photo[] getPhotoBetweenDate(LocalDate dateFrom, LocalDate dateTo) {
-		// TODO Auto-generated method stub
-		return null;
+		LocalDateTime fromDate = dateFrom.atStartOfDay();
+		LocalDateTime toDate = dateTo.atStartOfDay();
+		
+		Predicate<Photo> datePredicate = photos -> {
+			LocalDateTime photodate = photos.getDate();
+			return(photodate.isAfter(fromDate) && photodate.isBefore(toDate));
+		};
+		
+		return findPhotosByPredicate(datePredicate);
+
 	}
 
 	@Override
