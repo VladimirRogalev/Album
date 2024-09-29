@@ -2,104 +2,126 @@ package album.dao;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.function.Predicate;
+import java.time.LocalTime;
+import java.util.Arrays;
+import java.util.Comparator;
+
 
 import album.model.Photo;
 
 public class AlbumImpl implements Album {
+	private static final int INITIAL_CAPACITY = 10;
+
 	Photo[] photos;
 	int size;
 
-	public AlbumImpl(int capacity) {
-		photos = new Photo[capacity];
+	private static Comparator<Photo> comparator = (o1, o2) -> {
+//		int res = Integer.compare(o1.getDate(), o2.getDate());
+		int res = o1.getDate().compareTo(o2.getDate());
+		res = Integer.compare(o1.getAlbumId(), o2.getAlbumId());
+		return res != 0 ? res : Integer.compare(o1.getPhotoId(), o2.getPhotoId());
+	};
+
+	public AlbumImpl() {
+		photos = new Photo[INITIAL_CAPACITY];
 	}
 
 	@Override
 	public boolean addPhoto(Photo photo) {
-		if (photo == null || size == photos.length|| getPhotoFromAlbum(photo.getPhotoId(), photo.getAlbumId()) !=null) {
+		if (photo == null || size == photos.length
+				|| getPhotoFromAlbum(photo.getPhotoId(), photo.getAlbumId()) != null) {
 			return false;
 		}
+		if (photos.length == size) {
+			photos = Arrays.copyOf(photos, photos.length * 2);
+		}
+		int index = Arrays.binarySearch(photos, 0, size, photo, comparator);
+		index = index >= 0 ? index : -index - 1;
+		System.arraycopy(photos, index, photos, index + 1, size - index);
+
 		photos[size++] = photo;
 		return true;
 	}
 
 	@Override
 	public boolean removePhoto(int photoId, int albumId) {
-		for (int i = 0; i < size; i++) {
-			if ((photoId == photos[i].getPhotoId() && albumId == photos[i].getAlbumId())) {
-				photos[i] = photos[--size];
-				photos[size] = null;
-
-				return true;
-			}
+		int index = searchById(photoId, albumId);
+		if (index < 0) {
+			return false;
 		}
-		return false;
+		System.arraycopy(photos, index + 1, photos, index, size - index - 1);
+		photos = Arrays.copyOf(photos, photos.length - 1);
+		size--;
+		return true;
+
 	}
 
 	@Override
 	public boolean updatePhoto(int photoId, int albumId, String url) {
-		for (int i = 0; i < size; i++) {
-			if ((photoId == photos[i].getPhotoId() && albumId == photos[i].getAlbumId())) {
-				photos[i].setUrl(url);
-
-				return true;
-			}
+		int index = searchById(photoId, albumId);
+		if (index < 0) {
+			return false;
 		}
-		return false;
+		photos[index].setUrl(url);
+		return true;
 	}
 
 	@Override
 	public Photo getPhotoFromAlbum(int photoId, int albumId) {
-		for (int i = 0; i < size; i++) {
-			if ((photoId == photos[i].getPhotoId() && albumId == photos[i].getAlbumId())) {
-
-				return photos[i];
-			}
-
-		}
-		return null;
+		int index = searchById(photoId, albumId);
+		return index < 0 ? null : photos[index];
 	}
 
 	@Override
 	public Photo[] getAllPhotoFromAlbum(int albumId) {
+		Photo pattern = new Photo(Integer.MIN_VALUE, albumId, null, null, LocalDateTime.MIN);
+		int from = -Arrays.binarySearch(photos, 0, size, pattern, comparator)-1;
+		pattern = new Photo(Integer.MAX_VALUE, albumId, null, null, LocalDateTime.MAX);
+		int to = -Arrays.binarySearch(photos, 0, size, pattern, comparator)-1;
+		
+		return Arrays.copyOfRange(photos, from, to);
 
-		return findPhotosByPredicate(c -> albumId == c.getAlbumId());
+//		return findPhotosByPredicate(c -> albumId == c.getAlbumId());
 	}
 
 	@Override
 	public Photo[] getPhotoBetweenDate(LocalDate dateFrom, LocalDate dateTo) {
-		LocalDateTime fromDate = dateFrom.atStartOfDay();
-		LocalDateTime toDate = dateTo.atStartOfDay();
 		
-		Predicate<Photo> datePredicate = photos -> {
-			LocalDateTime photodate = photos.getDate();
-			return(photodate.isAfter(fromDate) && photodate.isBefore(toDate));
-		};
+		Photo pattern = new Photo(Integer.MIN_VALUE, Integer.MIN_VALUE, null, null, dateFrom.atStartOfDay());
+		int from = -Arrays.binarySearch(photos, 0, size, pattern, comparator)-1;
+		pattern = new Photo(Integer.MAX_VALUE, Integer.MAX_VALUE, null, null, LocalDateTime.of(dateTo, LocalTime.MAX));
+		int to = -Arrays.binarySearch(photos, 0, size, pattern, comparator)-1;
 		
-		return findPhotosByPredicate(datePredicate);
+		return Arrays.copyOfRange(photos, from, to);
+	
 
 	}
 
 	@Override
 	public int size() {
-		return 0;
+		return size;
 	}
-	
-	private Photo [] findPhotosByPredicate(Predicate<Photo> predicate) {
-		int count = 0;
+
+	@Override
+	public void printPhotos() {
 		for (int i = 0; i < size; i++) {
-			if (predicate.test(photos[i])) {
-				count++;
-			}
+			System.out.println(photos[i]);
+
 		}
-		Photo [] res = new Photo[count];
-		for (int i = 0, j= 0;  j < res.length; i++) {
-			if (predicate.test(photos[i])) {
-				res[j++] = photos[i];
-			}
-			
-		}
-		return res;
+		System.out.println();
+
 	}
+
+	private int searchById(int photoId, int albumId) {
+		for (int i = 0; i < size; i++) {
+			if (photos[i] != null && photoId == photos[i].getPhotoId() && albumId == photos[i].getAlbumId()) {
+				return i;
+
+			}
+		}
+		return -1;
+	}
+
+
 
 }
