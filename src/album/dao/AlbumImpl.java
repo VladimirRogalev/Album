@@ -6,24 +6,29 @@ import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.Comparator;
 
-
 import album.model.Photo;
 
 public class AlbumImpl implements Album {
 	private static final int INITIAL_CAPACITY = 10;
 
 	Photo[] photos;
+	Photo[] photosByDate;
 	int size;
 
 	private static Comparator<Photo> comparator = (o1, o2) -> {
-//		int res = Integer.compare(o1.getDate(), o2.getDate());
-		int res = o1.getDate().compareTo(o2.getDate());
-		res = Integer.compare(o1.getAlbumId(), o2.getAlbumId());
+		int res = Integer.compare(o1.getAlbumId(), o2.getAlbumId());
 		return res != 0 ? res : Integer.compare(o1.getPhotoId(), o2.getPhotoId());
+	};
+
+	private static Comparator<Photo> comparatorByDate = (o1, o2) -> {
+
+		int res = o1.getDate().compareTo(o2.getDate());
+		return res;
 	};
 
 	public AlbumImpl() {
 		photos = new Photo[INITIAL_CAPACITY];
+		photosByDate = new Photo[INITIAL_CAPACITY];
 	}
 
 	@Override
@@ -34,12 +39,18 @@ public class AlbumImpl implements Album {
 		}
 		if (photos.length == size) {
 			photos = Arrays.copyOf(photos, photos.length * 2);
+			photosByDate = Arrays.copyOf(photosByDate, photosByDate.length * 2);
 		}
 		int index = Arrays.binarySearch(photos, 0, size, photo, comparator);
 		index = index >= 0 ? index : -index - 1;
 		System.arraycopy(photos, index, photos, index + 1, size - index);
+		photos[index] = photo;
+		index = Arrays.binarySearch(photosByDate, 0, size, photo, comparatorByDate);
+		index = index >= 0 ? index : -index - 1;
+		System.arraycopy(photosByDate, index, photosByDate, index + 1, size - index);
+		photosByDate[index] = photo;
+		size++;
 
-		photos[size++] = photo;
 		return true;
 	}
 
@@ -51,6 +62,8 @@ public class AlbumImpl implements Album {
 		}
 		System.arraycopy(photos, index + 1, photos, index, size - index - 1);
 		photos = Arrays.copyOf(photos, photos.length - 1);
+		System.arraycopy(photosByDate, index + 1, photosByDate, index, size - index - 1);
+		photos = Arrays.copyOf(photosByDate, photosByDate.length - 1);
 		size--;
 		return true;
 
@@ -75,25 +88,22 @@ public class AlbumImpl implements Album {
 	@Override
 	public Photo[] getAllPhotoFromAlbum(int albumId) {
 		Photo pattern = new Photo(Integer.MIN_VALUE, albumId, null, null, LocalDateTime.MIN);
-		int from = -Arrays.binarySearch(photos, 0, size, pattern, comparator)-1;
+		int from = -Arrays.binarySearch(photos, 0, size, pattern, comparator) - 1;
 		pattern = new Photo(Integer.MAX_VALUE, albumId, null, null, LocalDateTime.MAX);
-		int to = -Arrays.binarySearch(photos, 0, size, pattern, comparator)-1;
-		
+		int to = -Arrays.binarySearch(photos, 0, size, pattern, comparator) - 1;
+
 		return Arrays.copyOfRange(photos, from, to);
 
-//		return findPhotosByPredicate(c -> albumId == c.getAlbumId());
 	}
 
 	@Override
 	public Photo[] getPhotoBetweenDate(LocalDate dateFrom, LocalDate dateTo) {
-		
+
 		Photo pattern = new Photo(Integer.MIN_VALUE, Integer.MIN_VALUE, null, null, dateFrom.atStartOfDay());
-		int from = -Arrays.binarySearch(photos, 0, size, pattern, comparator)-1;
+		int from = -Arrays.binarySearch(photosByDate, 0, size, pattern, comparatorByDate) - 1;
 		pattern = new Photo(Integer.MAX_VALUE, Integer.MAX_VALUE, null, null, LocalDateTime.of(dateTo, LocalTime.MAX));
-		int to = -Arrays.binarySearch(photos, 0, size, pattern, comparator)-1;
-		
-		return Arrays.copyOfRange(photos, from, to);
-	
+		int to = -Arrays.binarySearch(photosByDate, 0, size, pattern, comparatorByDate) - 1;
+		return Arrays.copyOfRange(photosByDate, from, to);
 
 	}
 
@@ -121,7 +131,5 @@ public class AlbumImpl implements Album {
 		}
 		return -1;
 	}
-
-
 
 }

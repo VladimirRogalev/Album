@@ -18,14 +18,18 @@ class AlbumTests {
 	Album album = new AlbumImpl();
 	Photo[] photos = new Photo[5];
 	LocalDateTime dateTime = LocalDateTime.now();
+	Comparator<Photo> comparator = (o1, o2) -> {
+		int res = Integer.compare(o1.getAlbumId(), o2.getAlbumId());
+		return res!=0 ? res:Integer.compare(o1.getPhotoId(), o2.getPhotoId());
+	};
 
 
 	@BeforeEach
 	void setUp() throws Exception {
 
-		photos[0] = new Photo(1, 101, "Sunset over the Hills", "sunset_hills.jpg", dateTime.minusDays(3));
+		photos[0] = new Photo(1, 101, "Sunset over the Hills", "sunset_hills.jpg", dateTime.minusDays(4));
 		photos[1] = new Photo(2, 202, "City Lights at Night", "city_lights.jpg", dateTime.minusDays(6));
-		photos[2] = new Photo(3, 303, "Morning Dew on Leaves", "morning_dew.jpg", dateTime.minusDays(7));
+		photos[2] = new Photo(3, 303, "Morning Dew on Leaves", "morning_dew.jpg", dateTime.minusDays(1));
 		photos[3] = new Photo(4, 505, "Mountain Peak in Winter", "mountain_peak.jpg", dateTime.minusDays(4));
 		photos[4] = new Photo(5, 505, "Autumn Forest Path", "autumn_forest.jpg", dateTime.minusDays(1));
 		for (int i = 0; i < photos.length; i++) {
@@ -80,8 +84,10 @@ class AlbumTests {
 	@Test
 	void testGetPhotoBetweenDate() {
 		LocalDate localDate = LocalDate.now();
-		Photo[] expected = { photos[0], photos[1], photos[3], photos[4] };
-		assertArrayEquals(expected, album.getPhotoBetweenDate(localDate.minusDays(6), localDate.minusDays(3)));
+		Photo [] actual = album.getPhotoBetweenDate(localDate.minusDays(6), localDate.minusDays(3));
+		Arrays.sort(actual, comparator);
+		Photo[] expected = { photos[0], photos[1], photos[3]};
+		assertArrayEquals(expected, actual);
 
 	}
 
